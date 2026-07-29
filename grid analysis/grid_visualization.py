@@ -59,4 +59,8 @@ plt.grid(True, linestyle='--', alpha=0.4)
 
 output_path = os.path.join(BASE_DIR, "grid_network_map.png")
 plt.savefig(output_path, dpi=300, bbox_inches='tight')
+<<<<<<< HEAD
 plt.show()
+=======
+plt.show()
+>>>>>>> c646667d34677ac6990df10386b271456a0cfaab

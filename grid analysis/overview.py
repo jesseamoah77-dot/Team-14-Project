@@ -16,4 +16,8 @@ print(f"Substations: {substations_df.shape}")
 print(f"Utilities: {utilities_df.shape}\n")
 
 print("--- Lines First 5 Rows ---")
+<<<<<<< HEAD
 print(lines_df.head())
+=======
+print(lines_df.head())
+>>>>>>> c646667d34677ac6990df10386b271456a0cfaab

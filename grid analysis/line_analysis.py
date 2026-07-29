@@ -20,4 +20,8 @@ print(voltage_counts)
 # 3. Highest Capacity Lines (Bottlenecks / Critical Paths)
 print("\n--- Top 3 Highest Capacity Lines ---")
 top_lines = lines_df.sort_values(by="capacity_mw", ascending=False).head(3)
+<<<<<<< HEAD
 print(top_lines[["line_id", "source_substation_id", "target_substation_id", "capacity_mw"]])
+=======
+print(top_lines[["line_id", "source_substation_id", "target_substation_id", "capacity_mw"]])
+>>>>>>> c646667d34677ac6990df10386b271456a0cfaab

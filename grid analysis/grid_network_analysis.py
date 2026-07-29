@@ -27,4 +27,8 @@ merged_df = merged_df.merge(
 
 # 3. View transmission lines with real station names
 print("\n--- Transmission Connections ---")
+<<<<<<< HEAD
 print(merged_df[['line_id', 'source_name', 'target_name', 'capacity_mw', 'voltage_kv']].head())
+=======
+print(merged_df[['line_id', 'source_name', 'target_name', 'capacity_mw', 'voltage_kv']].head())
+>>>>>>> c646667d34677ac6990df10386b271456a0cfaab
