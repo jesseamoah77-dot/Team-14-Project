@@ -1,66 +1,95 @@
-import os
 import pandas as pd
 import networkx as nx
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+def create_interactive_grid_map(substations_file='substations.csv', lines_file='lines.csv'):
+    """
+    Creates an interactive Plotly map showing all power substations
+    and the transmission lines connecting them.
+    """
+    # Load the grid datasets
+    print("Reading dataset files for visualization...")
+    df_substations = pd.read_csv(substations_file)
+    df_lines = pd.read_csv(lines_file)
+    
+    # -------------------------------------------------------------
+    # 1. Prepare Line Coordinates (Edges)
+    # -------------------------------------------------------------
+    # We match source and target IDs to pull latitude & longitude coordinates
+    substation_map = df_substations.set_index('substation_id')[['latitude', 'longitude']].to_dict('index')
+    
+    line_lats = []
+    line_lons = []
+    
+    for _, line in df_lines.iterrows():
+        src_id = line['source_id']
+        tgt_id = line['target_id']
+        
+        # Make sure both endpoints exist before drawing the line
+        if src_id in substation_map and tgt_id in substation_map:
+            line_lats.extend([substation_map[src_id]['latitude'], substation_map[tgt_id]['latitude'], None])
+            line_lons.extend([substation_map[src_id]['longitude'], substation_map[tgt_id]['longitude'], None])
+            
+    # Trace layer for the lines connecting the stations
+    lines_trace = go.Scattermapbox(
+        lat=line_lats,
+        lon=line_lons,
+        mode='lines',
+        line=dict(width=2, color='#1f77b4'),  # Nice clean blue for transmission lines
+        hoverinfo='none',
+        name='Transmission Lines'
+    )
+    
+    # -------------------------------------------------------------
+    # 2. Prepare Substation Markers (Nodes)
+    # -------------------------------------------------------------
+    hover_labels = []
+    for _, sub in df_substations.iterrows():
+        label = (
+            f"<b>Substation ID:</b> {sub['substation_id']}<br>"
+            f"<b>Capacity:</b> {sub.get('capacity_mw', 'N/A')} MW<br>"
+            f"<b>Status:</b> {sub.get('status', 'Active')}"
+        )
+        hover_labels.append(label)
+        
+    nodes_trace = go.Scattermapbox(
+        lat=df_substations['latitude'],
+        lon=df_substations['longitude'],
+        mode='markers',
+        marker=dict(
+            size=10,
+            color='#d62728',  # Bright red markers for visibility
+            opacity=0.9
+        ),
+        text=hover_labels,
+        hoverinfo='text',
+        name='Substations'
+    )
+    
+    # -------------------------------------------------------------
+    # 3. Assemble and Style the Interactive Map
+    # -------------------------------------------------------------
+    fig = go.Figure(data=[lines_trace, nodes_trace])
+    
+    # Center map on average lat/lon coordinates
+    avg_lat = df_substations['latitude'].mean()
+    avg_lon = df_substations['longitude'].mean()
+    
+    fig.update_layout(
+        title="<b>National Electricity Grid Network Map</b>",
+        mapbox=dict(
+            style="open-street-map",  # Clean, open-source base map
+            center=dict(lat=avg_lat, lon=avg_lon),
+            zoom=6
+        ),
+        margin=dict(l=20, r=20, t=50, b=20),
+        showlegend=True
+    )
+    
+    # Save output to an HTML file so anyone can double-click and open it in a browser
+    output_filename = "interactive_grid_map.html"
+    fig.write_html(output_filename)
+    print(f"Map successfully generated and saved as '{output_filename}'!")
 
-# Load datasets
-lines_df = pd.read_csv(os.path.join(BASE_DIR, "lines.csv"))
-substations_df = pd.read_csv(os.path.join(BASE_DIR, "substations.csv"))
-
-print("=== GENERATING GEOGRAPHIC GRID MAP ===")
-
-# --- OUTLIER FILTERING ---
-# Filter out substations with extreme coordinate values (e.g. typos/placeholders)
-lat_q1, lat_q3 = substations_df['latitude'].quantile([0.25, 0.75])
-lat_iqr = lat_q3 - lat_q1
-
-long_q1, long_q3 = substations_df['longitude'].quantile([0.25, 0.75])
-long_iqr = long_q3 - long_q1
-
-# Keep substations within 3x IQR
-valid_subs = substations_df[
-    (substations_df['latitude'] >= lat_q1 - 3 * lat_iqr) &
-    (substations_df['latitude'] <= lat_q3 + 3 * lat_iqr) &
-    (substations_df['longitude'] >= long_q1 - 3 * long_iqr) &
-    (substations_df['longitude'] <= long_q3 + 3 * long_iqr)
-]
-
-valid_ids = set(valid_subs['substation_id'])
-
-# Initialize Graph
-G = nx.Graph()
-
-pos = {}
-for _, row in valid_subs.iterrows():
-    node_id = row['substation_id']
-    G.add_node(node_id, name=row['substation_name'])
-    pos[node_id] = (row['longitude'], row['latitude'])
-
-# Add edges between valid substations
-for _, row in lines_df.iterrows():
-    src = row['source_substation_id']
-    tgt = row['target_substation_id']
-    if src in valid_ids and tgt in valid_ids:
-        G.add_edge(src, tgt)
-
-# Plotting
-plt.figure(figsize=(10, 8))
-
-nx.draw_networkx_nodes(G, pos, node_size=300, node_color='skyblue', edgecolors='navy')
-nx.draw_networkx_edges(G, pos, width=1.5, alpha=0.6, edge_color='darkgray')
-nx.draw_networkx_labels(G, pos, font_size=8, font_weight='bold')
-
-plt.title("Power Grid Map", fontsize=15)
-plt.xlabel("Longitude")
-plt.ylabel("Latitude")
-plt.grid(True, linestyle='--', alpha=0.4)
-
-output_path = os.path.join(BASE_DIR, "grid_network_map.png")
-plt.savefig(output_path, dpi=300, bbox_inches='tight')
-<<<<<<< HEAD
-plt.show()
-=======
-plt.show()
->>>>>>> c646667d34677ac6990df10386b271456a0cfaab
+if __name__ == "__main__":
+    create_interactive_grid_map()
