@@ -1,0 +1,46 @@
+"""
+This script reads the substations.csv file and loads the relevant
+columns into the GridCare-Lite database, so outages can be logged
+against real substations instead of placeholder data.
+"""
+
+import pandas as pd
+from database import init_db
+
+CSV_PATH = 'substations.csv'
+
+
+def import_substations(csv_path=CSV_PATH, db_path='gridcare.db'):
+    df = pd.read_csv(csv_path)
+
+    df = df.rename(columns={
+        'Substation ID': 'substation_id',
+        'Name': 'name',
+        'Region': 'region',
+    })
+    subset = df[['substation_id', 'name', 'region']]
+
+    conn = init_db(db_path)
+    cur = conn.cursor()
+
+    rows_inserted = 0
+    for _, row in subset.iterrows():
+        cur.execute(
+            'INSERT OR IGNORE INTO substations (substation_id, name, region) '
+            'VALUES (?, ?, ?)',
+            (int(row['substation_id']), row['name'], row['region'])
+        )
+        rows_inserted += cur.rowcount
+
+    conn.commit()
+
+    cur.execute('SELECT COUNT(*) FROM substations')
+    total = cur.fetchone()[0]
+    print(f"Newly inserted rows this run: {rows_inserted}")
+    print(f"Total substations now in database: {total}")
+
+    conn.close()
+
+
+if __name__ == '__main__':
+    import_substations()
