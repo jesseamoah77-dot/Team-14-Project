@@ -1,0 +1,88 @@
+"""
+This file creates the SQLite database and all four tables GridCare-Lite
+needs: users, substations, outages, and work_orders.
+
+"""
+
+import sqlite3
+
+
+def init_db(db_path='gridcare.db'):
+    """
+    Connects to (or creates) the GridCare-Lite database and makes sure
+    all required tables exist. Safe to call every time the app starts -
+    CREATE TABLE IF NOT EXISTS won't wipe existing data.
+    """
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+
+    # 1: users - who can log in, and what role they have
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL CHECK (
+                role IN ('admin', 'engineer', 'technician', 'customer_service')
+            )
+        )
+    ''')
+
+    #  2: substations - reference data, will later be imported from the substations.csv the data science team cleans up
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS substations (
+            substation_id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            region TEXT NOT NULL
+        )
+    ''')
+
+    #  3: outages - a reported fault at a substation
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS outages (
+            outage_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            substation_id INTEGER NOT NULL,
+            reported_by INTEGER NOT NULL,
+            description TEXT,
+            status TEXT DEFAULT 'Open' CHECK (
+                status IN ('Open', 'In Progress', 'Resolved')
+            ),
+            reported_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            resolved_at TEXT,
+            FOREIGN KEY (substation_id) REFERENCES substations(substation_id),
+            FOREIGN KEY (reported_by) REFERENCES users(user_id)
+        )
+    ''')
+
+    #  4: work_orders - the admin's assignment of a technician to go fix a given outage
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS work_orders (
+            work_order_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            outage_id INTEGER NOT NULL,
+            assigned_technician INTEGER,
+            scheduled_date TEXT,
+            status TEXT DEFAULT 'Pending' CHECK (
+                status IN ('Pending', 'Scheduled', 'Completed')
+            ),
+            FOREIGN KEY (outage_id) REFERENCES outages(outage_id),
+            FOREIGN KEY (assigned_technician) REFERENCES users(user_id)
+        )
+    ''')
+
+    conn.commit()
+    return conn
+
+
+if __name__ == '__main__':
+    # This block only runs when you execute "python database.py" directly.
+    # It creates the database file and confirms the tables were made.
+    connection = init_db()
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    tables = cursor.fetchall()
+
+    print("Database 'gridcare.db' created successfully.")
+    print("Tables found:", [t[0] for t in tables])
+
+    connection.close()
