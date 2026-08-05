@@ -9,7 +9,6 @@ Admins can also assign work orders to technicians.
 
 import tkinter as tk
 from tkinter import ttk, messagebox
-
 from database import init_db
 
 
@@ -18,7 +17,7 @@ class OutageDashboard(tk.Frame):
         super().__init__(master)
         self.user_id = user_id
         self.username = username
-        self.role = role
+        self.role = str(role).lower()  # Normalize role casing
         self.db_path = db_path
         self.master = master
         master.title(f'GridCare-Lite - Outage Dashboard ({username} - {role})')
@@ -38,13 +37,13 @@ class OutageDashboard(tk.Frame):
         )
 
         # Only engineers and admins can log a new outage
-        if role in ('engineer', 'admin'):
+        if self.role in ('engineer', 'admin'):
             ttk.Button(
                 button_frame, text='Log New Outage', command=self.open_new_outage_form
             ).pack(side='left', padx=5)
 
         # Only admins can assign work orders
-        if role == 'admin':
+        if self.role == 'admin':
             ttk.Button(
                 button_frame, text='Assign Work Order', command=self.open_assign_form
             ).pack(side='left', padx=5)
@@ -89,6 +88,9 @@ class NewOutageForm(tk.Toplevel):
         self.substations = cur.fetchall()
         conn.close()
 
+        if not self.substations:
+            messagebox.showwarning('Warning', 'No substations found in database. Import substations first.')
+
         ttk.Label(self, text='Substation:').grid(row=0, column=0, padx=8, pady=8, sticky='e')
         self.substation_var = tk.StringVar()
         substation_names = [name for _, name in self.substations]
@@ -114,14 +116,19 @@ class NewOutageForm(tk.Toplevel):
             return
 
         substation_id = next(
-            sub_id for sub_id, name in self.substations if name == selected_name
+            (sub_id for sub_id, name in self.substations if name == selected_name), None
         )
+
+        if not substation_id:
+            messagebox.showerror('Error', 'Invalid substation selection.')
+            return
 
         conn = init_db(self.db_path)
         cur = conn.cursor()
+        # Explicitly set status to 'Open' when logging a new outage
         cur.execute(
-            'INSERT INTO outages (substation_id, reported_by, description) VALUES (?, ?, ?)',
-            (substation_id, self.reported_by_user_id, description)
+            'INSERT INTO outages (substation_id, reported_by, description, status) VALUES (?, ?, ?, ?)',
+            (substation_id, self.reported_by_user_id, description, 'Open')
         )
         conn.commit()
         conn.close()
@@ -147,15 +154,17 @@ class AssignWorkOrderForm(tk.Toplevel):
         conn = init_db(db_path)
         cur = conn.cursor()
 
+        # Query outages that are either 'Open' or 'Reported'
         cur.execute('''
             SELECT o.outage_id, s.name, o.description
             FROM outages o
             JOIN substations s ON o.substation_id = s.substation_id
-            WHERE o.status = 'Open'
+            WHERE LOWER(o.status) IN ('open', 'reported')
         ''')
         self.open_outages = cur.fetchall()
 
-        cur.execute("SELECT user_id, username FROM users WHERE role = 'technician'")
+        # Case-insensitive role check for technicians
+        cur.execute("SELECT user_id, username FROM users WHERE LOWER(role) = 'technician'")
         self.technicians = cur.fetchall()
         conn.close()
 
@@ -196,7 +205,11 @@ class AssignWorkOrderForm(tk.Toplevel):
             return
 
         outage_id = int(outage_label.split(' - ')[0].replace('#', ''))
-        tech_id = next(uid for uid, name in self.technicians if name == tech_name)
+        tech_id = next((uid for uid, name in self.technicians if name == tech_name), None)
+
+        if not tech_id:
+            messagebox.showerror('Error', 'Invalid technician selection.')
+            return
 
         conn = init_db(self.db_path)
         cur = conn.cursor()
