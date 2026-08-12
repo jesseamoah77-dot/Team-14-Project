@@ -1,18 +1,10 @@
-"""
-This file creates the SQLite database and all four tables GridCare-Lite
-needs: users, substations, outages, and work_orders.
 
-"""
 
 import sqlite3
 
 
 def init_db(db_path='gridcare.db'):
-    """
-    Connects to (or creates) the GridCare-Lite database and makes sure
-    all required tables exist. Safe to call every time the app starts -
-    CREATE TABLE IF NOT EXISTS won't wipe existing data.
-    """
+  
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
 
@@ -74,8 +66,6 @@ def init_db(db_path='gridcare.db'):
 
 
 if __name__ == '__main__':
-    # This block only runs when you execute "python database.py" directly.
-    # It creates the database file and confirms the tables were made.
     connection = init_db()
     cursor = connection.cursor()
 

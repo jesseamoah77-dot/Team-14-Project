@@ -19,7 +19,7 @@ connectivity_df['total_connections'] = connectivity_df['outgoing_lines'] + conne
 # 3. Merge with substation names
 hub_summary = substations_df.merge(
     connectivity_df, 
-    left_on='substation_id', 
+    left_on='substation_id',  
     right_index=True, 
     how='left'
 ).fillna(0)

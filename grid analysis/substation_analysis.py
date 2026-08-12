@@ -19,8 +19,4 @@ print(utility_counts)
 # 3. Geographic Footprint 
 print("\n--- Geographic Bounds ---")
 print(f"Latitude Range : {substations_df['latitude'].min():.4f} to {substations_df['latitude'].max():.4f}")
-<<<<<<< HEAD
 print(f"Longitude Range: {substations_df['longitude'].min():.4f} to {substations_df['longitude'].max():.4f}")
-=======
-print(f"Longitude Range: {substations_df['longitude'].min():.4f} to {substations_df['longitude'].max():.4f}")
->>>>>>> c646667d34677ac6990df10386b271456a0cfaab

@@ -7,6 +7,7 @@ navigation into the main Outage Dashboard.
 """
 
 import os
+import sqlite3
 import tkinter as tk
 from tkinter import ttk, messagebox
 import bcrypt
@@ -30,20 +31,23 @@ def check_password(plain_password: str, stored_hash) -> bool:
     return bcrypt.checkpw(plain_password.encode('utf-8'), stored_hash)
 
 
-def add_user(username, plain_password, role, db_path=DEFAULT_DB_PATH):
-    """Utility function to create new users with securely hashed passwords."""
-    conn = init_db(db_path)
-    cur = conn.cursor()
-    password_hash = hash_password(plain_password)
+def add_user(username, password, role='technician', db_path=DEFAULT_DB_PATH):
+    """Helper function to insert users safely into the database."""
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    hashed = hash_password(password)
+    
     try:
-        cur.execute(
-            'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
-            (username.strip(), password_hash, role.strip().lower())
+        cursor.execute(
+            "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+            (username, hashed, role)
         )
         conn.commit()
-        print(f"User '{username}' successfully registered with role '{role}'.")
-    except Exception as e:
-        print(f"Failed to create user '{username}': {e}")
+        print(f" • User '{username}' created successfully.")
+        return True
+    except sqlite3.IntegrityError:
+        print(f" • User '{username}' already exists. Skipping.")
+        return False
     finally:
         conn.close()
 
