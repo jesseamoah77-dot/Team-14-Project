@@ -9,7 +9,6 @@ from database import init_db
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_DB_PATH = os.path.join(BASE_DIR, 'gridcare.db')
 
-
 def hash_password(plain_password: str) -> str:
     hashed_bytes = bcrypt.hashpw(plain_password.encode('utf-8'), bcrypt.gensalt())
     return hashed_bytes.decode('utf-8')
@@ -18,7 +17,6 @@ def check_password(plain_password: str, stored_hash) -> bool:
     if isinstance(stored_hash, str):
         stored_hash = stored_hash.encode('utf-8')
     return bcrypt.checkpw(plain_password.encode('utf-8'), stored_hash)
-
 
 def add_user(username, password, role='technician', db_path=DEFAULT_DB_PATH):
     conn = sqlite3.connect(db_path)
@@ -37,7 +35,6 @@ def add_user(username, password, role='technician', db_path=DEFAULT_DB_PATH):
         return False
     finally:
         conn.close()
-
 
 class LoginWindow(ttk.Frame):
     def __init__(self, master, on_success, db_path=DEFAULT_DB_PATH):
@@ -84,7 +81,7 @@ class LoginWindow(ttk.Frame):
         if not username or not password:
             messagebox.showerror('Login Failed', 'Please enter both a username and password.')
             return
-
+            
         conn = init_db(self.db_path)
         cur = conn.cursor()
         cur.execute('SELECT user_id, password_hash, role FROM users WHERE username = ?', (username,))
@@ -100,7 +97,6 @@ class LoginWindow(ttk.Frame):
             self.on_success(user_id, username, role)
         else:
             messagebox.showerror('Login Failed', 'Invalid username or password.')
-
 
 def center_window(window, width=360, height=260):
     window.update_idletasks()
