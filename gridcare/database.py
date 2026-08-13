@@ -1,14 +1,9 @@
 
-
 import sqlite3
-
-
 def init_db(db_path='gridcare.db'):
   
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
-
-    # 1: users - who can log in, and what role they have
     cur.execute('''
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,8 +14,6 @@ def init_db(db_path='gridcare.db'):
             )
         )
     ''')
-
-    #  2: substations - reference data, will later be imported from the substations.csv the data science team cleans up
     cur.execute('''
         CREATE TABLE IF NOT EXISTS substations (
             substation_id INTEGER PRIMARY KEY,
@@ -28,8 +21,6 @@ def init_db(db_path='gridcare.db'):
             region TEXT NOT NULL
         )
     ''')
-
-    #  3: outages - a reported fault at a substation
     cur.execute('''
         CREATE TABLE IF NOT EXISTS outages (
             outage_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,8 +36,6 @@ def init_db(db_path='gridcare.db'):
             FOREIGN KEY (reported_by) REFERENCES users(user_id)
         )
     ''')
-
-    #  4: work_orders - the admin's assignment of a technician to go fix a given outage
     cur.execute('''
         CREATE TABLE IF NOT EXISTS work_orders (
             work_order_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -63,16 +52,12 @@ def init_db(db_path='gridcare.db'):
 
     conn.commit()
     return conn
-
-
 if __name__ == '__main__':
     connection = init_db()
     cursor = connection.cursor()
-
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
     tables = cursor.fetchall()
-
+  
     print("Database 'gridcare.db' created successfully.")
     print("Tables found:", [t[0] for t in tables])
-
     connection.close()
